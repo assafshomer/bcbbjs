@@ -111,7 +111,7 @@ body {
     height: 32px;
     width: 100%;
     padding-left: 32px;
-    background-image:url(../images/inputlink.png);
+    background-image:url('inputlink.png');
     background-repeat:no-repeat;
     background-position-x:left;
     background-position-y:top;
@@ -179,7 +179,7 @@ body {
 .dialog.checkout .back {
     position:absolute;
     left:1em;top:50%;margin-top:-9px;
-    background-image:url(../images/back.png);
+    background-image:url('back.png');
     background-repeat:no-repeat;
     background-position-x:left;
     background-position-y:top;
