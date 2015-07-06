@@ -19,7 +19,7 @@ button::-moz-focus-inner { border: 0; }
 html { overflow-x: hidden; }
 body { 
     overflow-x: hidden; overflow-y:hidden;
-    background-image: url('background.png');
+    background-image: ('images/background.png');
     background-repeat: repeat;
     cursor:default;
     min-width:320px;
@@ -111,7 +111,7 @@ body {
     height: 32px;
     width: 100%;
     padding-left: 32px;
-    background-image:url('inputlink.png');
+    background-image:url('images/inputlink.png');
     background-repeat:no-repeat;
     background-position-x:left;
     background-position-y:top;
@@ -179,7 +179,7 @@ body {
 .dialog.checkout .back {
     position:absolute;
     left:1em;top:50%;margin-top:-9px;
-    background-image:url('back.png');
+    background-image:url('images/back.png');
     background-repeat:no-repeat;
     background-position-x:left;
     background-position-y:top;
