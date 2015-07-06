@@ -15,6 +15,7 @@
 //= require turbolinks
 //= require cryptojs
 //= require bitcoinjs-lib
+//= require bitcoinjs-lib.address
 //= require ellipticcurve
 //= require securerandom
 //= require_tree .
