@@ -29,7 +29,7 @@ set :deploy_to, "/home/#{fetch(:deploy_user)}/apps/#{fetch(:full_app_name)}"
 # set :pty, true
 
 # Default value for :linked_files is []
-set :linked_files, %w{config/app_config.yml config/local_env.yml config/secrets.yml}
+set :linked_files, %w{config/app_config.yml config/local_env.yml}
 
 # Default value for linked_dirs is []
 set :linked_dirs, %w{bin log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system}
