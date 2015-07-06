@@ -13,8 +13,8 @@
 //= require jquery
 //= require jquery_ujs
 //= require turbolinks
-//= require bitcoinjs-lib
-//= require cryptojs
-//= require ellipticcurve
-//= require securerandom
+// require bitcoinjs-lib
+// require cryptojs
+// require ellipticcurve
+// require securerandom
 //= require_tree .
