@@ -17,3 +17,4 @@
 /tmp
 *sublime*
 /config/app_config.yml
+/config/local_env.yml
