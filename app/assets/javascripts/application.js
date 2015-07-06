@@ -17,3 +17,4 @@
 //= require cryptojs
 //= require ellipticcurve
 //= require securerandom
+//= require_tree .
