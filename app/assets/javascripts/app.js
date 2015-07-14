@@ -146,7 +146,7 @@ function waitForPrice() {
     $("#checkoutnewprice").attr("disabled", "disabled");
 
     appendLog("Checking staging address balance...");
-    var checkBalanceUrl = "https://testnet3.toshi.io/api/v0/addresses/" + staging_address.address;
+    var checkBalanceUrl = TOSHI_SERVER+"/api/v0/addresses/" + staging_address.address;
     var req = $.ajax({
         type: "GET", url: checkBalanceUrl,
         crossDomain: true,
@@ -196,7 +196,7 @@ function calculateTotalPrice() {
 }
 
 function subStage() {
-    var getUnspentUrl = "https://testnet3.toshi.io/api/v0/addresses/" + staging_address.address + "/unspent_outputs";
+    var getUnspentUrl = TOSHI_SERVER+"/api/v0/addresses/" + staging_address.address + "/unspent_outputs";
     var req = $.ajax({
         type: "GET", url: getUnspentUrl,
         crossDomain: true,
@@ -241,7 +241,7 @@ function completeSubstage(tx, totalUnspentsValue) {
 
     //var subHashBytes = Crypto.SHA256(Crypto.SHA256(rawTx, { asBytes: true }), { asBytes: true });
     //var subHash = bytesToHex(funHashBytes.reverse());
-    var realyUrl = "https://testnet3.toshi.io/api/v0/transactions";
+    var realyUrl = TOSHI_SERVER+"/api/v0/transactions";
     var req = $.ajax({
         type: "POST", url: realyUrl,
         crossDomain: true,
@@ -264,7 +264,7 @@ function completeSubstage(tx, totalUnspentsValue) {
 }
 
 function subTryUnconfirmed() {
-    var unconfirmedUrl = "https://testnet3.toshi.io/api/v0/addresses/" + staging_address.address + "/transactions";
+    var unconfirmedUrl = TOSHI_SERVER+"/api/v0/addresses/" + staging_address.address + "/transactions";
     var req = $.ajax({
         type: "GET", url: unconfirmedUrl,
         crossDomain: true,
@@ -342,7 +342,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function generateTransactions() {
-        var getUnspentUrl = "https://testnet3.toshi.io/api/v0/addresses/" + substagingAddress_.address + "/unspent_outputs";
+        var getUnspentUrl = TOSHI_SERVER+"/api/v0/addresses/" + substagingAddress_.address + "/unspent_outputs";
         var req = $.ajax({
             type: "GET", url: getUnspentUrl,
             crossDomain: true,
@@ -372,7 +372,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function tryUnconfirmed() {
-        var unconfirmedUrl = "https://testnet3.toshi.io/api/v0/addresses/" + substagingAddress_.address + "/transactions";
+        var unconfirmedUrl = TOSHI_SERVER+"/api/v0/addresses/" + substagingAddress_.address + "/transactions";
         var req = $.ajax({
             type: "GET", url: unconfirmedUrl,
             crossDomain: true,
@@ -472,7 +472,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function relaySTN() {
-        var realyUrl = "https://testnet3.toshi.io/api/v0/transactions";
+        var realyUrl = TOSHI_SERVER+"/api/v0/transactions";
         var req = $.ajax({
             type: "POST", url: realyUrl,
             crossDomain: true,
@@ -491,7 +491,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function relayNTO() {
-        var realyUrl = "https://testnet3.toshi.io/api/v0/transactions";
+        var realyUrl = TOSHI_SERVER+"/api/v0/transactions";
         var req = $.ajax({
             type: "POST", url: realyUrl,
             crossDomain: true,
@@ -532,6 +532,7 @@ $(document).ready(function () {
     loadBoardImage();
     initGUI();
     $("#serverroot").val(SERVER_ROOT);
+    $("#toshroot").val(TOSHI_SERVER);
     $("#serverroot").change(function () {
         SERVER_ROOT = $(this).val();
         SERVER_GETPRICE_URL = SERVER_ROOT + "/api/pixels";

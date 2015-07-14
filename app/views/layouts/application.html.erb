@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Blockchain Billboard</title>
-  <%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track' => true %>
-  <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
-  <%= csrf_meta_tags %>
-</head>
-<body>
-
-<%= yield %>
-
-</body>
+<html dir="ltr" lang="en">
+	<head>
+		<title>The Blockchain Billboard v<%= APP_CONFIG['version'] %> (Grayscale)</title>
+		<%= render 'layouts/meta' %>
+		<%= render 'layouts/includes' %>
+	</head>
+	<body>
+		<%= yield %>
+	</body>
 </html>
