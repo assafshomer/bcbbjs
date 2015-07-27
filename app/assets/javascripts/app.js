@@ -35,10 +35,10 @@ function readImagePixels() {
     for (var x = 0; x < imgPixels.width; x++) {
         for (var y = 0; y < imgPixels.height; y++) {
             var i = (y * 4) * imgPixels.width + x * 4;
-            var avg = (imgPixels.data[i] + imgPixels.data[i + 1] + imgPixels.data[i + 2]) / 3;
-            new_addresses[cidx]["color"] = Math.round(avg);
+            new_addresses[cidx]["r"] = imgPixels.data[i];
+            new_addresses[cidx]["g"] = imgPixels.data[i + 1];
+            new_addresses[cidx]["b"] = imgPixels.data[i + 2];
             cidx++;
-            if (avg > 255) { debugger; }
         }
     }
 }
@@ -99,7 +99,7 @@ function generateAddress() {
         $(".dlprvkeys").attr("href", window.URL.createObjectURL(csvBlob));
         $(".dlprvkeys").attr("download", "blockchain_billboard_" + ((Math.random() * 100000).toFixed(0)) + ".csv");
 
-        appendLog("Reading pixels from image (grayscale)...");
+        appendLog("Reading pixels from image...");
         setTimeout("generateAddresses_completed();", 0);
     }
 }
@@ -252,9 +252,9 @@ function completeSubstage(tx, totalUnspentsValue) {
         timeout: REQUEST_TIMEOUT,
         success: function (response) {
             //debugger;
-            for (var i = 0; i < totalSubstages; i++) {
-                subStages[i].init();
-            }
+            //for (var i = 0; i < totalSubstages; i++) {
+                subStages[0].init(0);
+            //}
         },
         error: function (ajaxContext) {
             alert(ajaxContext.statusText);
@@ -303,6 +303,7 @@ function subTryUnconfirmed() {
 }
 
 var pixelBuyer = function (substagingAddress_, startPos, endPos) {
+    var batchIndex;
     var rawTxHex, rawTxHex2;
     this.fees = calculate_tx_fees(endPos - startPos + 1);
     var fundingFees = this.fees.funding;
@@ -311,7 +312,11 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     this.totalPixelsPrice = calculatePixelsPrice();
     var totalPixelsPrice = this.totalPixelsPrice;
 
-    this.init = function () { appendLog("Please wait..."); generateTransactions(); };
+    this.init = function (cidx) {
+        batchIndex = cidx;
+        appendLog("Generating transactions (" + (batchIndex + 1) + "/" + totalSubstages + ")...");
+        generateTransactions();
+    };
 
     function calculate_tx_fees(number_of_pixels) {
         var bytes_per_inputs = 148;
@@ -333,7 +338,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
             var buyPrice = parseFloat(old_addresses["data"][i]["b"]);
             if (buyPrice == 0 || old_addresses["data"][i]["g"] == true) buyPrice = GEN_PIXEL_PRICE;
             buyPrice = buyPrice - (buyPrice % TRUN_MOD);
-            var colorData = parseFloat(new_addresses[i]["color"]);
+            var colorData = parseFloat(new_addresses[i]["r"]) + parseFloat(new_addresses[i]["g"]) + parseFloat(new_addresses[i]["b"]);
             var pixelPrice = buyPrice + colorData;
 
             res += pixelPrice;
@@ -418,7 +423,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
             var buyPrice = parseFloat(old_addresses["data"][i]["b"]);
             if (buyPrice == 0 || old_addresses["data"][i]["g"] == true) buyPrice = GEN_PIXEL_PRICE;
             buyPrice = buyPrice - (buyPrice % TRUN_MOD);
-            var colorData = parseFloat(new_addresses[i]["color"]);
+            var colorData = parseFloat(new_addresses[i]["r"]) + parseFloat(new_addresses[i]["g"]) + parseFloat(new_addresses[i]["b"]);
             var pixelPrice = buyPrice + newPricePerPixel + colorData;
 
             tx.addOutput(new_addresses[i]["address"], pixelPrice);
@@ -450,12 +455,25 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
             tx2.addInput(funHash, tIdx);
             var buyPrice = parseFloat(old_addresses["data"][idx]["b"]);
             if (buyPrice == 0 || old_addresses["data"][idx]["g"] == true) buyPrice = GEN_PIXEL_PRICE;
+            var green = parseFloat(new_addresses[idx]["g"]);
+            var blue = parseFloat(new_addresses[idx]["b"]);
             buyPrice = buyPrice - (buyPrice % TRUN_MOD);
-            tx2.addOutput(old_addresses["data"][idx]["a"], buyPrice);
+            tx2.addOutput(old_addresses["data"][idx]["a"], buyPrice+green);
             var changeBack = tx.outs[tIdx].value - buyPrice;
-            tx2.addOutput(new_addresses[idx]["address"], changeBack);
+            tx2.addOutput(new_addresses[idx]["address"], changeBack+blue);
         }
-        tx2.addInput(funHash, endPos-startPos);
+        tx2.addInput(funHash, endPos - startPos);
+
+        // embed url
+        /*debugger;
+        var op_url = "j" + $(".linkurl").val();
+        var op_return_data = new Array(op_url.length);
+        for (var c = 0; c < op_url.length; c++) {
+            op_return_data[c] = parseInt(op_url.charCodeAt(c));
+        }
+        var op_return_script = bytesToHex(op_return_data);
+        tx2.addOutput(op_return_script, 0);*/
+
         // rest of fees from staging address
         //tx2.addOutput(substagingAddress["address"], totalUnspentsValue - fees.transfer);
         for (var idx = startPos; idx < endPos; idx++) {
@@ -467,6 +485,8 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
         tx2.sign(endPos - startPos, ecKey);
 
         rawTxHex2 = tx2.serializeHex();
+
+        appendLog("Broadcasting transactions (" + (batchIndex + 1) + "/" + totalSubstages + ")...");
 
         relaySTN();
     }
@@ -513,8 +533,13 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
                     error: function (ac) { }
                 });
 
-                appendLog("Thank you!");
-                alert("Purchase successful. The billboard will be updated when the next block is mined. (TX: " + JSON.parse(response).hash + ")");
+                allTX += (allTX == "" ? "" : ",") + JSON.parse(response).hash;
+                if (batchIndex == totalSubstages - 1) {
+                    appendLog("Thank you!");
+                    alert("Purchase successful. The billboard will be updated when the next block is mined. (TX: " + allTX + ")");
+                } else {
+                    subStages[batchIndex + 1].init(batchIndex + 1);
+                }
             },
             error: function (ajaxContext) {
                 alert(ajaxContext.statusText);
@@ -524,20 +549,21 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
 
 }
 
+var allTX = "";
 
 // UI
 
-$(document).ready(function () {
-    initBoard();
-    loadBoardImage();
-    initGUI();
-    $("#serverroot").val("Backend Server: "+SERVER_ROOT);
-    $("#toshroot").val("Toshi Server: "+TOSHI_SERVER);
-    $("#serverroot").change(function () {
-        SERVER_ROOT = $(this).val();
-        SERVER_GETPRICE_URL = SERVER_ROOT + "/api/pixels";
-    });
-});
+// $(document).ready(function () {
+//     initBoard();
+//     loadBoardImage();
+//     initGUI();
+//     $("#serverroot").val("Backend Server: "+SERVER_ROOT);
+//     $("#toshroot").val("Toshi Server: "+TOSHI_SERVER);
+//     $("#serverroot").change(function () {
+//         SERVER_ROOT = $(this).val();
+//         SERVER_GETPRICE_URL = SERVER_ROOT + "/api/pixels";
+//     });
+// });
 
 function loadBoardImage() {
     $("#cboard").attr("src", SERVER_BOARDIMAGE_URL);
@@ -828,7 +854,7 @@ function generateBitcoinAddress(staging) {
     if (staging) {
         return { "address": bitcoinAddress, "privatekey": privateKeyWif };
     } else {
-        return { "address": bitcoinAddress, "privatekey": privateKeyWif, "color": null };
+        return { "address": bitcoinAddress, "privatekey": privateKeyWif, "r": null, "g": null, "b": null };
     }
 }
 
