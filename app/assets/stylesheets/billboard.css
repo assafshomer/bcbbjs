@@ -196,7 +196,7 @@ body {
     padding:2em;
     border-bottom:solid 10px #000C54;
 }
-#serverroot {
+#serverroot {    
     position: absolute;
     right: 0;
     bottom: 0;

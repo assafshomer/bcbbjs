@@ -3,7 +3,7 @@ var fileUploaded = false;
 var useFavIcon = false;
 var fileWidth = 0, fileHeight = 0;
 var fileUrl = "";
-var posX, posY; // SELECTED POSITION
+var posX, posY;
 var calcPrice, newPrice, totalPrice, totalBuyPrice;
 var lrX, lrY;
 var cursorReset = true;
@@ -14,7 +14,11 @@ var old_addresses;
 var new_addresses;
 var totalGenerated;
 var staging_address;
-
+var subStages;
+var totalSubstages;
+var totalStagingBalanceAttempts = 0;
+var downloadedPrivateKeys = false;
+var allTX = "";
 
 // BUYING PROCESS
 
@@ -44,10 +48,8 @@ function readImagePixels() {
 }
 
 function startBuyingProcess() {
-    //fees = calculate_tx_fees(totalPixels);
-
     var buyUrl = SERVER_GETPRICE_URL + "/?tlx=" + posX + "&tly=" + posY + "&brx=" + (posX + fileWidth - 1) + "&bry=" + (posY + fileHeight - 1);
-    //alert(buyUrl);
+
     var req = $.ajax({
         type: "GET", url: buyUrl,
         crossDomain: true,
@@ -98,24 +100,22 @@ function generateAddress() {
         var csvBlob = new Blob([csv], { type: 'text/csv' });
         $(".dlprvkeys").attr("href", window.URL.createObjectURL(csvBlob));
         $(".dlprvkeys").attr("download", "blockchain_billboard_" + ((Math.random() * 100000).toFixed(0)) + ".csv");
+        $(".dlprvkeys").on("click", function () { downloadedPrivateKeys = true; });
 
         appendLog("Reading pixels from image...");
         setTimeout("generateAddresses_completed();", 0);
     }
 }
 
-var subStages;
-var totalSubstages;
 function generateAddresses_completed() {
     readImagePixels();
     
     // substaging
     totalSubstages = Math.ceil(fileWidth * fileHeight / MAX_PIXELS_PER_TRAN);
     subStages = new Array(totalSubstages);
-    //debugger;
+
     totalPrice = 0;
     for (var s = 0; s < subStages.length; s++) {
-        //debugger;
         subStages[s] = new pixelBuyer(generateBitcoinAddress(true), s * MAX_PIXELS_PER_TRAN, (s + 1) * MAX_PIXELS_PER_TRAN > totalPixels ? totalPixels : (s + 1) * MAX_PIXELS_PER_TRAN);
         totalPrice += subStages[s].totalPixelsPrice + subStages[s].fees.funding + subStages[s].fees.transfer;
     }
@@ -128,6 +128,7 @@ function generateAddresses_completed() {
 
     $(".prvkeys").show();
 }
+
 function calculate_substage_fees(numAddresses) {
     var bytes_per_inputs = 148;
     var bytes_per_output = 34;
@@ -139,8 +140,8 @@ function calculate_substage_fees(numAddresses) {
     return res;
 }
 
-var totalStagingBalanceAttempts = 0;
 function waitForPrice() {
+    if (!downloadedPrivateKeys) { alert("Please download your private keys first, in order to be able to spend the bitcoins in your pixels' addresses and set their price."); return; }
     $(".dialog.checkout .back, .dialog.checkout .close").hide();
     $("#payqr, #payaddr").show();
     $("#checkoutnewprice").attr("disabled", "disabled");
@@ -239,8 +240,6 @@ function completeSubstage(tx, totalUnspentsValue) {
     var subTx = tx.serialize();
     var subTxHex = tx.serializeHex();
 
-    //var subHashBytes = Crypto.SHA256(Crypto.SHA256(rawTx, { asBytes: true }), { asBytes: true });
-    //var subHash = bytesToHex(funHashBytes.reverse());
     var realyUrl = TOSHI_SERVER+"/api/v0/transactions";
     var req = $.ajax({
         type: "POST", url: realyUrl,
@@ -251,10 +250,7 @@ function completeSubstage(tx, totalUnspentsValue) {
         },
         timeout: REQUEST_TIMEOUT,
         success: function (response) {
-            //debugger;
-            //for (var i = 0; i < totalSubstages; i++) {
-                subStages[0].init(0);
-            //}
+            subStages[0].init(0);
         },
         error: function (ajaxContext) {
             alert(ajaxContext.statusText);
@@ -402,17 +398,14 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
                     }
                 }
 
-                //debugger;
                 if (totalUnspentsValue >= totalPixelsPrice) {
                     completeTransactions(tx, totalUnspentsValue);
                     return;
                 } else {
-                    //setTimeout("tryUnconfirmed();", BALANCE_QUERY_INTERVAL);
                     tryUnconfirmed();
                 }
             },
             error: function (ajaxContext) {
-//                setTimeout("tryUnconfirmed();", UNCONFIRMED_QUERY_INTERVAL);
                 tryUnconfirmed();
             }
         });
@@ -430,15 +423,12 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
             totalUnspentsValue -= pixelPrice;
         }
 
-        //debugger;
         totalUnspentsValue -= fundingFees;
         tx.addOutput(substagingAddress_["address"], totalUnspentsValue);
 
         var ecKey = new bitcoin.ECKey(substagingAddress_.privatekey);
         for (var idx = 0; idx < tx.ins.length; idx++) {
-            //debugger;
             tx.sign(idx, ecKey);
-            //document.title = idx;
         }
 
         var rawTx = tx.serialize();
@@ -459,28 +449,23 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
             var blue = parseFloat(new_addresses[idx]["b"]);
             buyPrice = buyPrice - (buyPrice % TRUN_MOD);
             tx2.addOutput(old_addresses["data"][idx]["a"], buyPrice+green);
-            var changeBack = tx.outs[tIdx].value - buyPrice;
+            var changeBack = newPricePerPixel;
             tx2.addOutput(new_addresses[idx]["address"], changeBack+blue);
         }
         tx2.addInput(funHash, endPos - startPos);
 
         // embed url
-        /*debugger;
-        var op_url = "j" + $(".linkurl").val();
+        var op_url = $(".linkurl").val();
         var op_return_data = new Array(op_url.length);
         for (var c = 0; c < op_url.length; c++) {
             op_return_data[c] = parseInt(op_url.charCodeAt(c));
         }
-        var op_return_script = bytesToHex(op_return_data);
-        tx2.addOutput(op_return_script, 0);*/
+        tx2.addMetaData(op_return_data);
 
-        // rest of fees from staging address
-        //tx2.addOutput(substagingAddress["address"], totalUnspentsValue - fees.transfer);
         for (var idx = startPos; idx < endPos; idx++) {
             var tIdx = idx - startPos;
             var ecKey2 = new bitcoin.ECKey(new_addresses[idx]["privatekey"]);
             tx2.sign(tIdx, ecKey2);
-            //document.title = startPos + " -> " + endPos;
         }
         tx2.sign(endPos - startPos, ecKey);
 
@@ -537,6 +522,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
                 if (batchIndex == totalSubstages - 1) {
                     appendLog("Thank you!");
                     alert("Purchase successful. The billboard will be updated when the next block is mined. (TX: " + allTX + ")");
+                    self.location = self.location.href;
                 } else {
                     subStages[batchIndex + 1].init(batchIndex + 1);
                 }
@@ -549,21 +535,34 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
 
 }
 
-var allTX = "";
+function generateBitcoinAddress(staging) {
+    var key = new Bitcoin.ECKey(false);
+    var bitcoinAddress = key.getBitcoinAddress();
+    var privateKeyWif = key.getBitcoinWalletImportFormat();
+    if (staging) {
+        return { "address": bitcoinAddress, "privatekey": privateKeyWif };
+    } else {
+        return { "address": bitcoinAddress, "privatekey": privateKeyWif, "r": null, "g": null, "b": null };
+    }
+}
+
 
 // UI
 
-// $(document).ready(function () {
-//     initBoard();
-//     loadBoardImage();
-//     initGUI();
-//     $("#serverroot").val("Backend Server: "+SERVER_ROOT);
-//     $("#toshroot").val("Toshi Server: "+TOSHI_SERVER);
-//     $("#serverroot").change(function () {
-//         SERVER_ROOT = $(this).val();
-//         SERVER_GETPRICE_URL = SERVER_ROOT + "/api/pixels";
-//     });
-// });
+function getAllUrls() {
+    $.ajax({
+        type: "GET", url: SERVER_GETPIXEL_URL,
+        async: false,
+        data: {},
+        success: function (response) {
+            allUrls = new Object();
+            for (var u = 0; u < response.data.length; u++) {
+                var item = response.data[u];
+                allUrls[item.id] = item.url;
+            }
+        }
+    });
+}
 
 function loadBoardImage() {
     $("#cboard").attr("src", SERVER_BOARDIMAGE_URL);
@@ -707,17 +706,18 @@ function initGUI() {
 function getPixelUrl(x, y) {
     if (x == lrX && y == lrY) {
         $.ajax({
-            type: "GET", url: SERVER_GETPIXEL_URL,
+            type: "GET", url: SERVER_GETPRICE_URL + "/?tlx=" + x + "&tly=" + y + "&brx=" + x + "&bry=" + y,
             async: false,
             data: {
                 X: x, Y: y
             },
             success: function (response) {
-                if (response == "") { // EMPTY PIXEL
+                var urlId = response.data[0].u;
+                if (urlId == null) { // EMPTY PIXEL
                     resetCursor();
                 } else { // GOT URL
                     $("#cboard").css("cursor", "pointer");
-                    $("#cboard").click(function () { if (x == lrX && y == lrY && CMODE == "view") window.open(response); });
+                    $("#cboard").click(function () { if (x == lrX && y == lrY && CMODE == "view") window.open(allUrls[urlId]); });
                     cursorReset = false;
                 }
             }
@@ -822,15 +822,6 @@ function updateFileDetails() { // UPDATE DIALOG WITH PREVIEW, DIMENSIONS & POSIT
     }
 }
 
-function extractFavIcon() { // INSERT A SERVER CALL HERE AFTER VALIDATING THE URL CLIENT-WISE
-    if (!validateLink()) return false;
-    var url = $(".dialog.customize .linkurl").val();
-    if (url.substring(0, 4) != "http") {
-        alert("Failed to extract favicon"); return false;
-    }
-    return true;
-}
-
 function validateLink() { // VALIDATE LINK
     var url = $(".dialog.customize .linkurl").val();
     if (url == "") { $(".dialog.customize .linkurl").focus(); return false; }
@@ -846,17 +837,6 @@ function selectPosition() {
 
 
 // GENERAL
-
-function generateBitcoinAddress(staging) {
-    var key = new Bitcoin.ECKey(false);
-    var bitcoinAddress = key.getBitcoinAddress();
-    var privateKeyWif = key.getBitcoinWalletImportFormat();
-    if (staging) {
-        return { "address": bitcoinAddress, "privatekey": privateKeyWif };
-    } else {
-        return { "address": bitcoinAddress, "privatekey": privateKeyWif, "r": null, "g": null, "b": null };
-    }
-}
 
 function appendLog(str) {
     $("#log").html(str);

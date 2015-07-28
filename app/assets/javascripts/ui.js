@@ -1,3 +1,5 @@
+var allUrls;
+
 $(document).ready(function () {
     initBoard();
     loadBoardImage();
@@ -7,5 +9,7 @@ $(document).ready(function () {
     $("#serverroot").change(function () {
         SERVER_ROOT = $(this).val();
         SERVER_GETPRICE_URL = SERVER_ROOT + "/api/pixels";
+        SERVER_GETPIXEL_URL = SERVER_ROOT + "/api/urls";
     });
+    getAllUrls();
 });
