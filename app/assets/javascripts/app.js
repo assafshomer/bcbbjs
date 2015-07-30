@@ -147,7 +147,7 @@ function waitForPrice() {
     $("#checkoutnewprice").attr("disabled", "disabled");
 
     appendLog("Checking staging address balance...");
-    var checkBalanceUrl = TOSHI_SERVER+"/api/v0/addresses/" + staging_address.address;
+    var checkBalanceUrl = "https://testnet3.toshi.io/api/v0/addresses/" + staging_address.address;
     var req = $.ajax({
         type: "GET", url: checkBalanceUrl,
         crossDomain: true,
@@ -197,7 +197,7 @@ function calculateTotalPrice() {
 }
 
 function subStage() {
-    var getUnspentUrl = TOSHI_SERVER+"/api/v0/addresses/" + staging_address.address + "/unspent_outputs";
+    var getUnspentUrl = "https://testnet3.toshi.io/api/v0/addresses/" + staging_address.address + "/unspent_outputs";
     var req = $.ajax({
         type: "GET", url: getUnspentUrl,
         crossDomain: true,
@@ -240,7 +240,7 @@ function completeSubstage(tx, totalUnspentsValue) {
     var subTx = tx.serialize();
     var subTxHex = tx.serializeHex();
 
-    var realyUrl = TOSHI_SERVER+"/api/v0/transactions";
+    var realyUrl = "https://testnet3.toshi.io/api/v0/transactions";
     var req = $.ajax({
         type: "POST", url: realyUrl,
         crossDomain: true,
@@ -260,7 +260,7 @@ function completeSubstage(tx, totalUnspentsValue) {
 }
 
 function subTryUnconfirmed() {
-    var unconfirmedUrl = TOSHI_SERVER+"/api/v0/addresses/" + staging_address.address + "/transactions";
+    var unconfirmedUrl = "https://testnet3.toshi.io/api/v0/addresses/" + staging_address.address + "/transactions";
     var req = $.ajax({
         type: "GET", url: unconfirmedUrl,
         crossDomain: true,
@@ -343,7 +343,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function generateTransactions() {
-        var getUnspentUrl = TOSHI_SERVER+"/api/v0/addresses/" + substagingAddress_.address + "/unspent_outputs";
+        var getUnspentUrl = "https://testnet3.toshi.io/api/v0/addresses/" + substagingAddress_.address + "/unspent_outputs";
         var req = $.ajax({
             type: "GET", url: getUnspentUrl,
             crossDomain: true,
@@ -373,7 +373,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function tryUnconfirmed() {
-        var unconfirmedUrl = TOSHI_SERVER+"/api/v0/addresses/" + substagingAddress_.address + "/transactions";
+        var unconfirmedUrl = "https://testnet3.toshi.io/api/v0/addresses/" + substagingAddress_.address + "/transactions";
         var req = $.ajax({
             type: "GET", url: unconfirmedUrl,
             crossDomain: true,
@@ -477,7 +477,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function relaySTN() {
-        var realyUrl = TOSHI_SERVER+"/api/v0/transactions";
+        var realyUrl = "https://testnet3.toshi.io/api/v0/transactions";
         var req = $.ajax({
             type: "POST", url: realyUrl,
             crossDomain: true,
@@ -496,7 +496,7 @@ var pixelBuyer = function (substagingAddress_, startPos, endPos) {
     }
 
     function relayNTO() {
-        var realyUrl = TOSHI_SERVER+"/api/v0/transactions";
+        var realyUrl = "https://testnet3.toshi.io/api/v0/transactions";
         var req = $.ajax({
             type: "POST", url: realyUrl,
             crossDomain: true,
@@ -560,6 +560,14 @@ function getAllUrls() {
                 var item = response.data[u];
                 allUrls[item.id] = item.url;
             }
+        }
+    });
+    $.ajax({
+        type: "GET", url: SERVER_GETPIXEL_URLIDS,
+        async: false,
+        data: {},
+        success: function (response) {
+            allUrlIds = response.data.split(/[,]/);
         }
     });
 }
@@ -701,27 +709,20 @@ function initGUI() {
         e.preventDefault();
         startWizard();
     });
+
+    window.requestAnimationFrame(getAllUrls);
 }
 
 function getPixelUrl(x, y) {
     if (x == lrX && y == lrY) {
-        $.ajax({
-            type: "GET", url: SERVER_GETPRICE_URL + "/?tlx=" + x + "&tly=" + y + "&brx=" + x + "&bry=" + y,
-            async: false,
-            data: {
-                X: x, Y: y
-            },
-            success: function (response) {
-                var urlId = response.data[0].u;
-                if (urlId == null) { // EMPTY PIXEL
-                    resetCursor();
-                } else { // GOT URL
-                    $("#cboard").css("cursor", "pointer");
-                    $("#cboard").click(function () { if (x == lrX && y == lrY && CMODE == "view") window.open(allUrls[urlId]); });
-                    cursorReset = false;
-                }
-            }
-        });
+        var urlId = allUrlIds[(Math.round(x)-1) * BOARD_HEIGHT + Math.round(y)];
+        if (urlId == "") { // EMPTY PIXEL
+            resetCursor();
+        } else { // GOT URL
+            $("#cboard").css("cursor", "pointer");
+            $("#cboard").click(function () { if (x == lrX && y == lrY && CMODE == "view") window.open(allUrls[urlId]); });
+            cursorReset = false;
+        }
     }
 }
 

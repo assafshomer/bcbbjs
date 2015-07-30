@@ -1,4 +1,4 @@
-var allUrls;
+var allUrls, allUrlIds;
 
 $(document).ready(function () {
     initBoard();
@@ -10,6 +10,6 @@ $(document).ready(function () {
         SERVER_ROOT = $(this).val();
         SERVER_GETPRICE_URL = SERVER_ROOT + "/api/pixels";
         SERVER_GETPIXEL_URL = SERVER_ROOT + "/api/urls";
-    });
-    getAllUrls();
+        SERVER_GETPIXEL_URLIDS = SERVER_ROOT + "/api/urlids";
+    });    
 });
